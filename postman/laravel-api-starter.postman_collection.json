@@ -1,0 +1,307 @@
+{
+  "info": {
+    "name": "Laravel API Starter",
+    "description": "Laravel 12 API Starter Kit endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "email", "value": "user@example.com" },
+    { "key": "password", "value": "password" },
+    { "key": "password_confirmation", "value": "password" },
+    { "key": "otp", "value": "" },
+    { "key": "registration_id", "value": "" },
+    { "key": "reset_token", "value": "" },
+    { "key": "auth_action", "value": "" },
+    { "key": "fname", "value": "Test" },
+    { "key": "mname", "value": "" },
+    { "key": "lname", "value": "User" },
+    { "key": "new_password", "value": "new-password" },
+    { "key": "new_password_confirmation", "value": "new-password" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/health" }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" },
+            "url": "{{base_url}}/api/authentication/otp"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.otp) pm.collectionVariables.set('otp', body.otp);",
+                "if (body.action) pm.collectionVariables.set('auth_action', body.action);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otp}}\"\n}" },
+            "url": "{{base_url}}/api/authentication/login"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.token) pm.collectionVariables.set('token', body.token);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otp}}\",\n  \"fname\": \"{{fname}}\",\n  \"mname\": \"{{mname}}\",\n  \"lname\": \"{{lname}}\"\n}" },
+            "url": "{{base_url}}/api/authentication/register"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.token) pm.collectionVariables.set('token', body.token);"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Password Authentication",
+      "item": [
+        {
+          "name": "Login with Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/login"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.token) pm.collectionVariables.set('token', body.token);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Request Password Reset Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/forgot-password"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.token) pm.collectionVariables.set('reset_token', body.token);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"{{new_password}}\",\n  \"password_confirmation\": \"{{new_password_confirmation}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/reset-password"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.code === 'PASSWORD_RESET') {",
+                "  pm.collectionVariables.set('password', pm.collectionVariables.get('new_password'));",
+                "  pm.collectionVariables.set('password_confirmation', pm.collectionVariables.get('new_password_confirmation'));",
+                "  pm.collectionVariables.unset('reset_token');",
+                "  pm.collectionVariables.unset('token');",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Register with Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"password_confirmation\": \"{{password_confirmation}}\",\n  \"fname\": \"{{fname}}\",\n  \"mname\": \"{{mname}}\",\n  \"lname\": \"{{lname}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/register"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.registrationId) pm.collectionVariables.set('registration_id', body.registrationId);",
+                "if (body.otp) pm.collectionVariables.set('otp', body.otp);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Resend Registration OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationId\": \"{{registration_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/register/resend"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.otp) pm.collectionVariables.set('otp', body.otp);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Verify Password Registration Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registrationId\": \"{{registration_id}}\",\n  \"code\": \"{{otp}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/register/verify"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.token) pm.collectionVariables.set('token', body.token);",
+                "if (body.code === 'REGISTERED') {",
+                "  pm.collectionVariables.unset('registration_id');",
+                "  pm.collectionVariables.unset('otp');",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"password\": \"{{new_password}}\",\n  \"password_confirmation\": \"{{new_password_confirmation}}\"\n}"
+            },
+            "url": "{{base_url}}/api/authentication/password/change-password"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.code === 'PASSWORD_CHANGED') {",
+                "  pm.collectionVariables.set('password', pm.collectionVariables.get('new_password'));",
+                "  pm.collectionVariables.set('password_confirmation', pm.collectionVariables.get('new_password_confirmation'));",
+                "}"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}

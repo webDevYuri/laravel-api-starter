@@ -7,6 +7,7 @@ RUN apt-get update \
         git \
         libicu-dev \
         libonig-dev \
+        libsqlite3-dev \
         libzip-dev \
         unzip \
     && docker-php-ext-install -j"$(nproc)" \
@@ -14,6 +15,7 @@ RUN apt-get update \
         intl \
         mbstring \
         pdo_mysql \
+        pdo_sqlite \
         pcntl \
         zip \
     && rm -rf /var/lib/apt/lists/*

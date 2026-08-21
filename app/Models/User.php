@@ -5,13 +5,28 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, LogsActivity, Notifiable;
+
+    protected string $guard_name = 'api';
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email'])
+            ->logOnlyDirty()
+            ->useLogName('users');
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +37,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_platform_admin',
     ];
 
     /**
@@ -43,7 +59,13 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_platform_admin' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(Profile::class);
     }
 }

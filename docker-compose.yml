@@ -16,10 +16,48 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     command: >-
       sh -c 'mkdir -p storage/framework/cache/data storage/framework/sessions
       storage/framework/views storage/logs && chmod -R ug+rwX storage bootstrap/cache &&
       exec php artisan serve --host=0.0.0.0 --port=8000'
+    restart: unless-stopped
+
+  horizon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    volumes:
+      - .:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan horizon
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env
+    volumes:
+      - .:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan schedule:work
     restart: unless-stopped
 
   db:
@@ -48,7 +86,21 @@ services:
       - "${MAILPIT_WEB_PORT:-8025}:8025"
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   app_storage:
   app_vendor:
   mysql_data:
+  redis_data:
