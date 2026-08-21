@@ -28,7 +28,7 @@ class OtpAuthenticationTest extends TestCase
             'email' => $user->email,
         ]);
 
-        $response->assertOk()->assertJsonPath('action', 'login');
+        $response->assertOk()->assertJsonPath('data.action', 'login');
         $challenge = OtpChallenge::firstOrFail();
 
         $this->assertSame($user->id, $challenge->user_id);
@@ -53,7 +53,7 @@ class OtpAuthenticationTest extends TestCase
             'code' => '123456',
         ]);
 
-        $response->assertOk()->assertJsonStructure(['token']);
+        $response->assertOk()->assertJsonStructure(['data' => ['token']]);
         $this->assertNotNull(OtpChallenge::first()->consumed_at);
     }
 
@@ -102,7 +102,7 @@ class OtpAuthenticationTest extends TestCase
         $this->postJson('/api/authentication/otp', ['email' => $user->email])
             ->assertTooManyRequests()
             ->assertJsonPath('code', 'OTP_RESEND_NOT_READY')
-            ->assertJsonStructure(['message', 'retryAfter', 'resendAvailableAt']);
+            ->assertJsonStructure(['message', 'meta' => ['retryAfter', 'resendAvailableAt']]);
     }
 
     public function test_new_user_can_register_after_otp_verification(): void
@@ -118,8 +118,8 @@ class OtpAuthenticationTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('action', 'register')
-            ->assertJsonStructure(['code', 'message', 'action', 'token', 'user' => ['id', 'email', 'profile']]);
+            ->assertJsonPath('data.action', 'register')
+            ->assertJsonStructure(['code', 'message', 'data' => ['action', 'token', 'user' => ['id', 'email', 'profile']]]);
         $this->assertDatabaseHas('profiles', ['fname' => 'New', 'lname' => 'User']);
     }
 
@@ -152,6 +152,6 @@ class OtpAuthenticationTest extends TestCase
 
         $this->postJson('/api/authentication/otp', ['email' => $email])
             ->assertOk()
-            ->assertJsonPath('action', 'login');
+            ->assertJsonPath('data.action', 'login');
     }
 }

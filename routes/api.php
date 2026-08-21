@@ -3,12 +3,11 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\OtpController;
 use App\Http\Controllers\Auth\PasswordController;
+use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
-    return response()->json([
-        'status' => 'ok',
-    ]);
+    return ApiResponse::success('API_HEALTHY', 'API is running.', ['status' => 'ok']);
 });
 
 Route::prefix('authentication')->middleware('throttle:login')->group(function () {
@@ -33,5 +32,7 @@ Route::prefix('authentication/password')->middleware('auth.mode:password')->grou
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthenticatedSessionController::class, 'me']);
+    Route::patch('/auth/me/profile', [AuthenticatedSessionController::class, 'updateProfile']);
     Route::post('/auth/logout', [AuthenticatedSessionController::class, 'logout']);
+    Route::post('/auth/logout-all', [AuthenticatedSessionController::class, 'logoutAll']);
 });

@@ -22,8 +22,7 @@ class ExampleTest extends TestCase
         $response = $this->getJson('/api/health');
 
         $response->assertOk()
-            ->assertExactJson([
-                'status' => 'ok',
-            ]);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'ok');
     }
 }

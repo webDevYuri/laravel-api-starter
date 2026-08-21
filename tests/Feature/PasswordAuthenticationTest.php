@@ -29,7 +29,7 @@ class PasswordAuthenticationTest extends TestCase
 
         $this->postJson('/api/authentication/password/login', [
             'email' => $user->email, 'password' => 'password',
-        ])->assertOk()->assertJsonPath('code', 'AUTHENTICATED')->assertJsonStructure(['token', 'user']);
+        ])->assertOk()->assertJsonPath('code', 'AUTHENTICATED')->assertJsonStructure(['data' => ['token', 'user']]);
     }
 
     public function test_password_login_is_blocked_in_otp_mode(): void
@@ -65,9 +65,9 @@ class PasswordAuthenticationTest extends TestCase
         $response = $this->postJson('/api/authentication/password/register', $this->registrationPayload())
             ->assertAccepted()
             ->assertJsonPath('code', 'EMAIL_VERIFICATION_REQUIRED')
-            ->assertJsonStructure(['registrationId', 'email', 'retryAfter', 'resendAvailableAt', 'expiresAt']);
+            ->assertJsonStructure(['data' => ['registrationId', 'email', 'retryAfter', 'resendAvailableAt', 'expiresAt']]);
 
-        $registrationId = $response->json('registrationId');
+        $registrationId = $response->json('data.registrationId');
         $this->assertDatabaseHas('pending_registrations', ['id' => $registrationId, 'email' => 'new@example.com']);
         $this->assertDatabaseMissing('users', ['email' => 'new@example.com']);
 
@@ -93,8 +93,8 @@ class PasswordAuthenticationTest extends TestCase
     public function test_same_email_creates_a_new_registration_attempt(): void
     {
         Mail::fake();
-        $first = $this->postJson('/api/authentication/password/register', $this->registrationPayload())->json('registrationId');
-        $second = $this->postJson('/api/authentication/password/register', $this->registrationPayload())->json('registrationId');
+        $first = $this->postJson('/api/authentication/password/register', $this->registrationPayload())->json('data.registrationId');
+        $second = $this->postJson('/api/authentication/password/register', $this->registrationPayload())->json('data.registrationId');
 
         $this->assertNotSame($first, $second);
         $this->assertDatabaseCount('pending_registrations', 2);
@@ -104,7 +104,7 @@ class PasswordAuthenticationTest extends TestCase
     {
         Mail::fake();
         $registrationId = $this->postJson('/api/authentication/password/register', $this->registrationPayload())
-            ->json('registrationId');
+            ->json('data.registrationId');
         $pending = PendingRegistration::findOrFail($registrationId);
         $expiresAt = $pending->expires_at->toISOString();
         $pending->otpChallenges()->update(['last_sent_at' => now()->subMinutes(2)]);

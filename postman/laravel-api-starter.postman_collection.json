@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Laravel API Starter",
-    "description": "Laravel 12 API Starter Kit endpoints",
+    "description": "Laravel 12 API Starter Kit endpoints. Use the request descriptions for the purpose, accepted payload, and expected flow of each endpoint.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,14 +23,17 @@
   "item": [
     {
       "name": "Health",
+      "description": "Checks whether the API is running. No authentication or request body is required. Expected response: HTTP 200 with `{ \"status\": \"ok\" }`.",
       "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/health" }
     },
     {
       "name": "Authentication",
+      "description": "OTP-based authentication endpoints. These requests work only when `AUTH_MODE=otp`.",
       "item": [
         {
           "name": "OTP",
           "request": {
+            "description": "Requests an OTP for the supplied email. The API checks whether the email belongs to an existing user and returns the next action as either `login` or `register`. In local mode, the OTP is also included in the response for testing.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\"\n}\n```",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" },
@@ -42,7 +45,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.otp) pm.collectionVariables.set('otp', body.otp);",
+                "if (body.data.otp) pm.collectionVariables.set('otp', body.data.otp);",
                 "if (body.action) pm.collectionVariables.set('auth_action', body.action);"
               ]
             }
@@ -51,6 +54,7 @@
         {
           "name": "Login",
           "request": {
+            "description": "Verifies the login OTP and creates a Sanctum API token. Run the `OTP` request first, then use the returned OTP.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\"\n}\n```",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otp}}\"\n}" },
@@ -62,7 +66,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.token) pm.collectionVariables.set('token', body.token);"
+                "if (body.data.token) pm.collectionVariables.set('token', body.data.token);"
               ]
             }
           }]
@@ -70,6 +74,7 @@
         {
           "name": "Register",
           "request": {
+            "description": "Completes OTP-based registration after the email has been verified. Creates the user and profile, then returns a Sanctum API token.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\",\n  \"fname\": \"Test\",\n  \"mname\": null,\n  \"lname\": \"User\"\n}\n```",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otp}}\",\n  \"fname\": \"{{fname}}\",\n  \"mname\": \"{{mname}}\",\n  \"lname\": \"{{lname}}\"\n}" },
@@ -81,7 +86,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.token) pm.collectionVariables.set('token', body.token);"
+                "if (body.data.token) pm.collectionVariables.set('token', body.data.token);"
               ]
             }
           }]
@@ -90,31 +95,71 @@
     },
     {
       "name": "Users",
+      "description": "Authenticated user session endpoints. These requests require `Authorization: Bearer {{token}}`.",
       "item": [
         {
           "name": "Current User",
           "request": {
+            "description": "Returns the currently authenticated user. No request body is required.",
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": "{{base_url}}/api/auth/me"
           }
         },
         {
+          "name": "Update Profile",
+          "request": {
+            "description": "Updates the authenticated user's profile only. Email and authentication fields cannot be changed through this endpoint. Send one or more profile fields.\n\nAccepted payload:\n```json\n{\n  \"fname\": \"Updated\",\n  \"mname\": null,\n  \"lname\": \"User\"\n}\n```",
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fname\": \"Updated\",\n  \"mname\": null,\n  \"lname\": \"{{lname}}\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/me/profile"
+          }
+        },
+        {
           "name": "Logout",
           "request": {
+            "description": "Revokes the current Sanctum token. The user must authenticate again to receive a new token. No request body is required.",
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": "{{base_url}}/api/auth/logout"
           }
+        },
+        {
+          "name": "Logout All Sessions",
+          "request": {
+            "description": "Revokes every Sanctum token belonging to the authenticated user, including the current browser, other browsers, and other devices. The current request succeeds, but all later requests using the old tokens return `401 Unauthenticated`. The frontend should clear its stored token after success. No request body is required.",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/auth/logout-all"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.response.json();",
+                "if (body.code === 'LOGGED_OUT_ALL_SESSIONS') pm.collectionVariables.unset('token');"
+              ]
+            }
+          }]
         }
       ]
     },
     {
       "name": "Password Authentication",
+      "description": "Password-based authentication, registration, password reset, and password change endpoints. These requests work only when `AUTH_MODE=password`.\n\nPassword registration is verified through an OTP before the user record is created. Password reset uses a secure link emailed to the frontend and does not require manually entering an OTP.",
       "item": [
         {
           "name": "Login with Password",
           "request": {
+            "description": "Authenticates an existing verified user with their password and returns a Sanctum API token.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"password\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -132,7 +177,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.token) pm.collectionVariables.set('token', body.token);"
+                "if (body.data.token) pm.collectionVariables.set('token', body.data.token);"
               ]
             }
           }]
@@ -140,6 +185,7 @@
         {
           "name": "Request Password Reset Link",
           "request": {
+            "description": "Requests a password reset link. If the account exists, the API emails a one-time link to the configured frontend reset page. The token is stored hashed and expires after 15 minutes.\n\nThe response is intentionally generic for unknown emails. In local mode, the token and reset URL are also returned to make Postman testing easier.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -157,7 +203,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.token) pm.collectionVariables.set('reset_token', body.token);"
+                "if (body.data.token) pm.collectionVariables.set('reset_token', body.data.token);"
               ]
             }
           }]
@@ -165,6 +211,7 @@
         {
           "name": "Reset Password",
           "request": {
+            "description": "Sets a new password using the token received in the password reset email. The token is single-use. Existing API tokens are revoked after a successful reset.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"token\": \"secure-token-from-email\",\n  \"password\": \"new-password\",\n  \"password_confirmation\": \"new-password\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -195,6 +242,7 @@
         {
           "name": "Register with Password",
           "request": {
+            "description": "Starts a password-based registration. The payload is stored temporarily in `pending_registrations`, an OTP is sent to the email, and no user/profile record is created yet. The response includes a `registrationId`.\n\nThe pending registration expires after 30 minutes. In local mode, the OTP is included in the response for testing.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\",\n  \"fname\": \"Test\",\n  \"mname\": null,\n  \"lname\": \"User\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -212,8 +260,8 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.registrationId) pm.collectionVariables.set('registration_id', body.registrationId);",
-                "if (body.otp) pm.collectionVariables.set('otp', body.otp);"
+                "if (body.data.registrationId) pm.collectionVariables.set('registration_id', body.data.registrationId);",
+                "if (body.data.otp) pm.collectionVariables.set('otp', body.data.otp);"
               ]
             }
           }]
@@ -221,6 +269,7 @@
         {
           "name": "Resend Registration OTP",
           "request": {
+            "description": "Sends another OTP for an existing pending password registration. Use the `registrationId` returned by `Register with Password`. The original 30-minute registration expiry is not extended.\n\nAccepted payload:\n```json\n{\n  \"registrationId\": \"pending-registration-uuid\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -238,7 +287,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.otp) pm.collectionVariables.set('otp', body.otp);"
+                "if (body.data.otp) pm.collectionVariables.set('otp', body.data.otp);"
               ]
             }
           }]
@@ -246,6 +295,7 @@
         {
           "name": "Verify Password Registration Email",
           "request": {
+            "description": "Verifies the pending registration OTP. When successful, the API creates the user and profile, deletes the pending registration, and returns a Sanctum API token.\n\nAccepted payload:\n```json\n{\n  \"registrationId\": \"pending-registration-uuid\",\n  \"code\": \"123456\"\n}\n```",
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
@@ -263,7 +313,7 @@
               "type": "text/javascript",
               "exec": [
                 "const body = pm.response.json();",
-                "if (body.token) pm.collectionVariables.set('token', body.token);",
+                "if (body.data.token) pm.collectionVariables.set('token', body.data.token);",
                 "if (body.code === 'REGISTERED') {",
                 "  pm.collectionVariables.unset('registration_id');",
                 "  pm.collectionVariables.unset('otp');",
@@ -275,6 +325,7 @@
         {
           "name": "Change Password",
           "request": {
+            "description": "Changes the password for an authenticated user. The current password must be correct, and the new password must be different.\n\nAccepted payload:\n```json\n{\n  \"currentPassword\": \"current-password\",\n  \"password\": \"new-password\",\n  \"password_confirmation\": \"new-password\"\n}\n```",
             "method": "PATCH",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
