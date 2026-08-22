@@ -12,7 +12,7 @@ services:
     volumes:
       - .:/var/www/html
       - app_vendor:/var/www/html/vendor
-      - app_storage:/var/www/html/storage
+      - ./storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy
@@ -33,7 +33,7 @@ services:
     volumes:
       - .:/var/www/html
       - app_vendor:/var/www/html/vendor
-      - app_storage:/var/www/html/storage
+      - ./storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy
@@ -51,7 +51,7 @@ services:
     volumes:
       - .:/var/www/html
       - app_vendor:/var/www/html/vendor
-      - app_storage:/var/www/html/storage
+      - ./storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy

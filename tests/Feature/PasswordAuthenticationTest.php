@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\PruneExpiredOtpChallenges;
 use App\Jobs\PruneExpiredPendingRegistrations;
 use App\Models\OtpChallenge;
 use App\Models\PendingRegistration;
@@ -147,6 +148,35 @@ class PasswordAuthenticationTest extends TestCase
         $this->assertDatabaseMissing('pending_registrations', ['id' => $expired->id]);
         $this->assertDatabaseHas('pending_registrations', ['id' => $active->id]);
         $this->assertDatabaseMissing('otp_challenges', ['pending_registration_id' => $expired->id]);
+    }
+
+    public function test_cleanup_job_deletes_expired_and_old_consumed_otp_challenges_only(): void
+    {
+        $expired = OtpChallenge::create([
+            'identifier' => 'expired@example.com', 'purpose' => 'login',
+            'code_hash' => Hash::make('123456'), 'expires_at' => now()->subMinute(),
+        ]);
+        $oldConsumed = OtpChallenge::create([
+            'identifier' => 'consumed@example.com', 'purpose' => 'login',
+            'code_hash' => Hash::make('123456'), 'expires_at' => now()->addHour(),
+            'consumed_at' => now()->subHours(25),
+        ]);
+        $recentConsumed = OtpChallenge::create([
+            'identifier' => 'recent@example.com', 'purpose' => 'login',
+            'code_hash' => Hash::make('123456'), 'expires_at' => now()->addHour(),
+            'consumed_at' => now()->subHour(),
+        ]);
+        $active = OtpChallenge::create([
+            'identifier' => 'active@example.com', 'purpose' => 'login',
+            'code_hash' => Hash::make('123456'), 'expires_at' => now()->addHour(),
+        ]);
+
+        (new PruneExpiredOtpChallenges)->handle();
+
+        $this->assertDatabaseMissing('otp_challenges', ['id' => $expired->id]);
+        $this->assertDatabaseMissing('otp_challenges', ['id' => $oldConsumed->id]);
+        $this->assertDatabaseHas('otp_challenges', ['id' => $recentConsumed->id]);
+        $this->assertDatabaseHas('otp_challenges', ['id' => $active->id]);
     }
 
     public function test_password_registration_is_blocked_in_otp_mode(): void

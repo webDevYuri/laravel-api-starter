@@ -26,8 +26,6 @@ class PruneExpiredPendingRegistrations implements ShouldQueue
                 }
             });
 
-        if ($deleted > 0) {
-            Log::info('Expired pending registrations pruned.', ['count' => $deleted]);
-        }
+        Log::info('Expired pending registrations cleanup completed.', ['deleted' => $deleted]);
     }
 }

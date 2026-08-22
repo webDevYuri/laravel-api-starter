@@ -33,7 +33,7 @@
         {
           "name": "OTP",
           "request": {
-            "description": "Requests an OTP for the supplied email. The API checks whether the email belongs to an existing user and returns the next action as either `login` or `register`. In local mode, the OTP is also included in the response for testing.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\"\n}\n```",
+            "description": "Requests an OTP for the supplied email. This same endpoint is also used to resend the OTP after the cooldown period. The API checks whether the email belongs to an existing user and returns the next action as either `login` or `register`. In local mode, the OTP is also included in the response for testing.\n\nAccepted payload:\n```json\n{\n  \"email\": \"user@example.com\"\n}\n```",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" },
