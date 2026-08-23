@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAuthenticationMode;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\ForceJsonApiResponse;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'auth.mode' => EnsureAuthenticationMode::class,
+            'platform.admin' => EnsurePlatformAdmin::class,
         ]);
         $middleware->api(prepend: [
             ForceJsonApiResponse::class,

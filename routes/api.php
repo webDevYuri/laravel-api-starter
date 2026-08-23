@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\OtpController;
-use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Admin\Authentication\AdminAuthenticationController;
+use App\Http\Controllers\Admin\RbacController;
+use App\Http\Controllers\Client\Authentication\AuthenticatedSessionController;
+use App\Http\Controllers\Client\Authentication\OtpController;
+use App\Http\Controllers\Client\Authentication\PasswordController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
 
@@ -30,9 +32,28 @@ Route::prefix('authentication/password')->middleware('auth.mode:password')->grou
         ->middleware('auth:sanctum');
 });
 
+Route::post('/admin/authentication/login', [AdminAuthenticationController::class, 'login'])
+    ->middleware('throttle:login');
+
+Route::post('/admin/authentication/logout', [AdminAuthenticationController::class, 'logout'])
+    ->middleware(['auth:sanctum', 'platform.admin']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthenticatedSessionController::class, 'me']);
     Route::patch('/auth/me/profile', [AuthenticatedSessionController::class, 'updateProfile']);
     Route::post('/auth/logout', [AuthenticatedSessionController::class, 'logout']);
     Route::post('/auth/logout-all', [AuthenticatedSessionController::class, 'logoutAll']);
+});
+
+Route::prefix('admin')->middleware(['auth:sanctum', 'platform.admin'])->group(function () {
+    Route::get('/roles', [RbacController::class, 'indexRoles']);
+    Route::post('/roles', [RbacController::class, 'storeRole']);
+    Route::patch('/roles/{role}', [RbacController::class, 'updateRole']);
+    Route::delete('/roles/{role}', [RbacController::class, 'destroyRole']);
+    Route::get('/platform-admins', [RbacController::class, 'platformAdmins']);
+    Route::post('/platform-admins', [RbacController::class, 'storePlatformAdmin']);
+    Route::get('/platform-admins/{user}', [RbacController::class, 'showPlatformAdmin']);
+    Route::patch('/platform-admins/{user}', [RbacController::class, 'updatePlatformAdmin']);
+    Route::patch('/platform-admins/{user}/role', [RbacController::class, 'assignPlatformAdminRole']);
+    Route::delete('/platform-admins/{user}', [RbacController::class, 'removePlatformAdmin']);
 });
