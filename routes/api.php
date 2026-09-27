@@ -38,6 +38,15 @@ Route::post('/admin/authentication/login', [AdminAuthenticationController::class
 Route::post('/admin/authentication/logout', [AdminAuthenticationController::class, 'logout'])
     ->middleware(['auth:sanctum', 'platform.admin']);
 
+Route::prefix('admin/authentication/2fa')->middleware(['auth:sanctum', 'platform.admin'])->group(function () {
+    Route::post('/setup', [AdminAuthenticationController::class, 'setup']);
+    Route::post('/setup/verify', [AdminAuthenticationController::class, 'confirmSetup']);
+    Route::post('/disable', [AdminAuthenticationController::class, 'disable']);
+});
+
+Route::post('/admin/authentication/2fa/verify', [AdminAuthenticationController::class, 'verify'])
+    ->middleware('auth:sanctum');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthenticatedSessionController::class, 'me']);
     Route::patch('/auth/me/profile', [AuthenticatedSessionController::class, 'updateProfile']);

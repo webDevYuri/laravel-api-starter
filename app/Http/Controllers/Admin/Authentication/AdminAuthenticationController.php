@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Services\AdminTwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +38,62 @@ class AdminAuthenticationController extends Controller
             );
         }
 
+        if ($user->two_factor_enabled) {
+            $token = $user->createToken('admin-2fa-pending', ['admin:2fa:verify'], now()->addMinutes(5));
+            return ApiResponse::success('ADMIN_2FA_REQUIRED', 'Enter your two-factor authentication code.', [
+                'action' => 'admin_2fa_verify',
+                'token' => $token->plainTextToken,
+                'expiresAt' => now()->addMinutes(5)->toISOString(),
+            ]);
+        }
+
+        return $this->authenticated($user);
+    }
+
+    public function setup(Request $request, AdminTwoFactorService $twoFactor): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->two_factor_enabled) {
+            return ApiResponse::error('ADMIN_2FA_ALREADY_ENABLED', 'Two-factor authentication is already enabled.', status: 409);
+        }
+        return ApiResponse::success('ADMIN_2FA_SETUP_READY', 'Scan the QR code, then verify the code from your authenticator app.', $twoFactor->setup($user));
+    }
+
+    public function verify(Request $request, AdminTwoFactorService $twoFactor): JsonResponse
+    {
+        $token = $request->user()->currentAccessToken();
+        if (! $token || ! in_array('admin:2fa:verify', $token->abilities, true) || ($token->expires_at && $token->expires_at->isPast())) {
+            return ApiResponse::error('ADMIN_2FA_VERIFICATION_REQUIRED', 'Use the temporary token returned by admin login.', status: 401);
+        }
+        $data = $request->validate(['code' => ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/']]);
+        if (! $twoFactor->verifyLogin($request->user(), $data['code'])) {
+            return ApiResponse::error('INVALID_ADMIN_2FA_CODE', 'The two-factor authentication code is invalid or expired.', status: 422);
+        }
+        $token->delete();
+        return $this->authenticated($request->user());
+    }
+
+    public function confirmSetup(Request $request, AdminTwoFactorService $twoFactor): JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'digits:6']]);
+        if (! $twoFactor->verifySetup($request->user(), $data['code'])) {
+            return ApiResponse::error('INVALID_ADMIN_2FA_CODE', 'The two-factor authentication code is invalid.', status: 422);
+        }
+        return ApiResponse::success('ADMIN_2FA_ENABLED', 'Two-factor authentication has been enabled.');
+    }
+
+    public function disable(Request $request, AdminTwoFactorService $twoFactor): JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'regex:/^[A-Za-z0-9]{6,20}$/']]);
+        if (! $twoFactor->verifyLogin($request->user(), $data['code'])) {
+            return ApiResponse::error('INVALID_ADMIN_2FA_CODE', 'The two-factor authentication code is invalid.', status: 422);
+        }
+        $twoFactor->disable($request->user());
+        return ApiResponse::success('ADMIN_2FA_DISABLED', 'Two-factor authentication has been disabled.');
+    }
+
+    private function authenticated(User $user): JsonResponse
+    {
         return ApiResponse::success('ADMIN_AUTHENTICATED', 'Admin login successful.', [
             'action' => 'admin_login',
             'token' => $user->createToken('admin-api', ['admin'])->plainTextToken,

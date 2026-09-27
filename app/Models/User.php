@@ -38,6 +38,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_platform_admin',
+        'two_factor_enabled',
     ];
 
     /**
@@ -61,6 +62,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_platform_admin' => 'boolean',
             'password' => 'hashed',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
